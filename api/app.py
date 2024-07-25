@@ -20,17 +20,21 @@ def store_data():
     try:
         data = request.get_json()
         
-        if not all(k in data for k in ('temperature', 'humidity', 'aqi')):
+        if not all(k in data for k in ('temperature', 'humidity', 'aq', 'co', 'co2')):
             raise ValueError("Missing required sensor data fields")
 
         sensor_data = {
-            'temperature': data.temperature,
-            'humidity': data.humidity,
-            'aqi': data.aqi,
-            'datetime': datetime.now()
+            'temperature': data['temperature'],
+            'humidity': data['humidity'],
+            'aq': data['aq'],
+            'co': data['co'],
+            'co2': data['co2'],
+            'timestamp': datetime.now()
         }
 
         collections.insert_one(sensor_data)
+        
+        sensor_data['_id'] = str(sensor_data['_id'])
         
         response = {
             "status": "Success",
@@ -50,20 +54,14 @@ def store_data():
 @app.route('/api/v1/sic5/sensor-data', methods=['GET'])
 def retrieve_data():
     try:
-        data = list(collections.find().sort('datetime', -1).limit(10))
+        data = collections.find_one(sort=[('timestamp', -1)])
         
-        data.reverse()
-
-        for item in data:
-            item['_id'] = str(item['_id'])
-
-        response = {
-            "status": "Success",
-            "message": "Data retrieved",
-            "data": data
-        }
+        if data:
+            data['_id'] = str(data['_id'])
+        else:
+            data = {}
         
-        return jsonify(response), 200
+        return jsonify(data), 200
 
     except Exception as e:
         return jsonify({"status": "Error", "message": "An error occurred", "details": str(e)}), 500
