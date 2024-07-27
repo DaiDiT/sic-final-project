@@ -12,7 +12,7 @@ const char *WIFI_SSID = "Redmi Note 12 Pro";
 const char *WIFI_PASS = "66666666";
 
 // API server address
-const char *serverName = "http://192.168.75.25:3001/api/data"; // Ganti <alamat_ip_komputer> dengan alamat IP lokal komputer Anda
+const char *serverName = "http://192.168.75.25:3001/api/v1/sic5/sensor-data"; 
 
 // Pin assignments
 int sensor_input = 34;
@@ -22,12 +22,12 @@ const int ledPin = 32;  // LED pin
 
 // Global objects
 DHT dht(DHTPIN, DHTTYPE);
-LiquidCrystal_I2C lcd(0x27, 16, 2); // Sesuaikan dengan alamat I2C LCD Anda
+LiquidCrystal_I2C lcd(0x27, 16, 2); 
 
 #define Board "ESP-32"
 #define Voltage_Resolution 3.3
 #define ADC_Bit_Resolution 12
-#define RatioMQ135CleanAir 3.6 // berdasarkan data sheet MQ-135
+#define RatioMQ135CleanAir 3.6 
 
 MQUnifiedsensor MQ135(Board, Voltage_Resolution, ADC_Bit_Resolution, sensor_input, "MQ-135");
 
@@ -36,7 +36,7 @@ float get_temperature_data() {
   float t = dht.readTemperature();
   if (isnan(t)) {
     Serial.println(F("Error reading temperature!"));
-    return 0.0;  // Return default value on error
+    return 0.0;  
   } else {
     Serial.print(F("Temperature: "));
     Serial.print(t);
@@ -50,7 +50,7 @@ float get_humidity_data() {
   float h = dht.readHumidity();
   if (isnan(h)) {
     Serial.println(F("Error reading humidity!"));
-    return 0.0;  // Return default value on error
+    return 0.0; 
   } else {
     Serial.print(F("Humidity: "));
     Serial.print(h);
@@ -61,21 +61,21 @@ float get_humidity_data() {
 
 // Fungsi untuk membaca data dari sensor MQ-135
 float get_CO_data() {
-  MQ135.setRegressionMethod(1); // Set regression method untuk CO
-  MQ135.setA(605.18); MQ135.setB(-3.937); // Rumus dari datasheet MQ-135 untuk CO
-  MQ135.update(); // membaca sensor MQ-135
-  return MQ135.readSensor(); // membaca konsentrasi CO
+  MQ135.setRegressionMethod(1); 
+  MQ135.setA(605.18); MQ135.setB(-3.937); 
+  MQ135.update(); 
+  return MQ135.readSensor(); 
 }
 
 float get_CO2_data() {
-  MQ135.setRegressionMethod(1); // Set regression method untuk CO2
-  MQ135.setA(110.47); MQ135.setB(-2.862); // Rumus dari datasheet MQ-135 untuk CO2
-  MQ135.update(); // membaca sensor MQ-135
-  return MQ135.readSensor(); // membaca konsentrasi CO2
+  MQ135.setRegressionMethod(1); 
+  MQ135.setA(110.47); MQ135.setB(-2.862); 
+  MQ135.update();
+  return MQ135.readSensor(); 
 }
 
 
-void send_data_to_server(float temperature, float humidity, float air_quality, float CO, float CO2) {
+void send_data_to_server(float temperature, float humidity, float CO, float CO2) {
   if (WiFi.status() == WL_CONNECTED) { 
     HTTPClient http;
 
@@ -84,9 +84,8 @@ void send_data_to_server(float temperature, float humidity, float air_quality, f
 
     String jsonData = "{\"temperature\":" + String(temperature) + 
                       ",\"humidity\":" + String(humidity) + 
-                      ",\"air_quality\":" + String(air_quality) +
-                      ",\"CO\":" + String(CO) + // Pastikan ini ada
-                      ",\"CO2\":" + String(CO2) + "}"; // Pastikan ini ada
+                      ",\"CO\":" + String(CO) + 
+                      ",\"CO2\":" + String(CO2) + "}"; 
 
     int httpResponseCode = http.POST(jsonData);
 
@@ -109,8 +108,8 @@ void send_data_to_server(float temperature, float humidity, float air_quality, f
 // Fungsi untuk mengontrol lampu berdasarkan kondisi lingkungan
 void control_lamp(float temperature, float humidity, float CO, float CO2) {
   bool is_hot = temperature > 32.0; // Kondisi suhu terlalu panas
-  bool is_dry = humidity < 32.0; // Kondisi kelembapan terlalu kering
-  bool is_wet = humidity > 80; // Kondisi kelembapan terlalu lembap
+  bool is_dry = humidity < 35.0; // Kondisi kelembapan terlalu kering
+  bool is_wet = humidity > 76; // Kondisi kelembapan terlalu lembap
   bool is_high_CO = CO > 50; // Kondisi CO lebih dari 50 ppm
   bool is_high_CO2 = CO2 > 1000; // Kondisi CO2 lebih dari 1000 ppm
 
@@ -188,15 +187,16 @@ void display_status(float temperature, float humidity, float CO, float CO2) {
   }
 
   lcd.setCursor(0, 1);
-  if (humidity >= 30 && humidity <= 65) {
-    lcd.print("Humid: Normal");
-  } else if (humidity < 30) {
-    lcd.print("Humid: Warning");
-  } else if (humidity <= 80) {
-    lcd.print("Humid: Danger");
+  if (humidity >= 45 && humidity <= 65) {
+    lcd.print("Humid: Baik");
+  } else if ((humidity >= 35 && humidity < 45) || (humidity > 65 && humidity <= 75)) {
+    lcd.print("Humid: Cukup");
+  } else if (humidity < 35 || humidity > 75) {
+    lcd.print("Humid: Bahaya");
   } else {
-    lcd.print("Humid: Critical");
+    lcd.print("Humid: Invalid"); // Untuk menangani nilai-nilai yang tidak sesuai, jika ada
   }
+
 
   delay(1000); // Tampilkan status suhu dan kelembapan selama 2 detik
 }
@@ -223,17 +223,17 @@ void setup() {
   Serial.println("Connected to WiFi");
   
   dht.begin();
-  lcd.init(); // Ganti dengan lcd.begin() untuk beberapa library
+  lcd.init(); 
   lcd.backlight();
-  pinMode(ledPin, OUTPUT); // Set LED pin as output
+  pinMode(ledPin, OUTPUT); 
   
-  MQ135.setRegressionMethod(1); // Set method 1 untuk regresi linear
+  MQ135.setRegressionMethod(1); 
   MQ135.init();
 
   Serial.print("Calibrating...\n");
   float calcR0 = 0;
   for(int i = 1; i <= 10; i++) {
-    MQ135.update(); // membaca sensor MQ-135
+    MQ135.update();
     calcR0 += MQ135.calibrate(RatioMQ135CleanAir);
     Serial.print(".");
   }
@@ -260,12 +260,10 @@ void loop() {
   float humidity = get_humidity_data();
   float CO = get_CO_data();
   float CO2 = get_CO2_data();
-  float air_quality = (CO + CO2) / 2; // Menggabungkan data CO dan CO2 sebagai kualitas udara
+  
 
-  send_data_to_server(temperature, humidity, air_quality, CO, CO2);
+  send_data_to_server(temperature, humidity, CO, CO2);
   control_lamp(temperature, humidity, CO, CO2);
-  display_status(temperature, humidity, CO, CO2); // Memanggil fungsi baru
+  display_status(temperature, humidity, CO, CO2); 
   display_serial(CO, CO2);
 }
-
-

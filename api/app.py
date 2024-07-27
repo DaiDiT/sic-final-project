@@ -20,15 +20,14 @@ def store_data():
     try:
         data = request.get_json()
         
-        if not all(k in data for k in ('temperature', 'humidity', 'aq', 'co', 'co2')):
+        if not all(k in data for k in ('temperature', 'humidity', 'CO', 'CO2')):
             raise ValueError("Missing required sensor data fields")
 
         sensor_data = {
             'temperature': data['temperature'],
             'humidity': data['humidity'],
-            'aq': data['aq'],
-            'co': data['co'],
-            'co2': data['co2'],
+            'CO': data['CO'],
+            'CO2': data['CO2'],
             'timestamp': datetime.now()
         }
 
@@ -39,8 +38,7 @@ def store_data():
         response = {
             "status": "Success",
             "message": "Data received",
-            "data": sensor_data,
-            "result": predict(sensor_data)
+            "data": sensor_data
         }
         
         return jsonify(response), 200
@@ -65,9 +63,6 @@ def retrieve_data():
 
     except Exception as e:
         return jsonify({"status": "Error", "message": "An error occurred", "details": str(e)}), 500
-    
-def predict(sensor_data):
-    return 'BAIK'
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0',port=8000)
