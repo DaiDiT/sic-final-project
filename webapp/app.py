@@ -55,8 +55,6 @@ if page == "Home":
             else:
                 st.session_state.status_color = "red"
                 st.session_state.status_text = "Offline"
-
-            print(time_difference)
             
             st.session_state.temperature_delta = round(new_temperature - st.session_state.temperature, 1)
             st.session_state.humidity_delta = round(new_humidity - st.session_state.humidity, 1)
@@ -125,7 +123,7 @@ elif page == "Predict":
     if st.button("Predict"):
         st.session_state.predict = True
         with st.spinner('Processing data...'):
-            time.sleep(3)
+            time.sleep(2)
             st.session_state.predicted_air_quality = predict_air_quality(
                 st.session_state.input_temperature, 
                 st.session_state.input_humidity, 
